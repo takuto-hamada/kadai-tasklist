@@ -15,11 +15,15 @@ class TasksController extends Controller
      */
     public function index()
     {
-         $tasks = Task::all();
+        if (\Auth::check()) { 
+            $tasks = Task::orderBy('created_at', 'desc')->paginate(10);
+            
+            return view('tasks.index',[
+                'tasks' => $tasks,
+                ]);
+        }
 
-        return view('tasks.index', [
-            'tasks' => $tasks,
-        ]);
+        return view('welcome');
     }
 
     /**
@@ -49,10 +53,10 @@ class TasksController extends Controller
             'content' => 'required',
         ]);
         
-        $task = new Task;
-        $task->status = $request->status;
-        $task->content = $request->content;
-        $task->save();
+        $request->user()->tasks()->create([
+            'content' => $request->content,
+            'status' => $request->status,
+        ]);
 
         return redirect('/');
     }
@@ -117,8 +121,12 @@ class TasksController extends Controller
     public function destroy($id)
     {
         $task = Task::findOrFail($id);
-        $task->delete();
+       $micropost = \App\Micropost::findOrFail($id);
 
-        return redirect('/');
+        if (\Auth::id() === $task->user_id) {
+            $task->delete();
+        }
+
+        return back();
     }
 }
